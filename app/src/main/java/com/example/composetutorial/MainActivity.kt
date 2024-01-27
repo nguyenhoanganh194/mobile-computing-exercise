@@ -41,16 +41,80 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.material3.Button
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.NavHost
+import androidx.navigation.NavHostController
 
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PreviewConversation()
+            ConversationScreen()
         }
     }
 }
+
+
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    NavHost(navController, startDestination = "profile") {
+        composable("profile") {
+            ProfileScreen(onNavigateToFriendsList = {
+                navController.navigate("friendslist")
+            })
+        }
+        composable("friendslist") {
+            FriendListScreen(onNavigateToProfile = {
+                navController.navigate("profile")
+            })
+        }
+    }
+}
+@Preview(name = "Light Mode")
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+    name = "Dark Mode"
+)
+@Composable
+fun ConversationScreen() {
+    ComposeTutorialTheme{
+        val messages = SampleData.conversationSample
+        LazyColumn {
+            items(messages) { message ->
+                MessageCard(message)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileScreen(onNavigateToFriendsList: () -> Unit)
+{
+    Text("Profile")
+    Button(onClick = onNavigateToFriendsList) {
+        Text(text = "See friends list")
+    }
+}
+
+@Composable
+fun FriendListScreen(onNavigateToProfile: () -> Unit) {
+    Text("Friends List")
+    Button(onClick = { onNavigateToProfile() }) {
+        Text("Go to Profile")
+    }
+}
+
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
@@ -60,15 +124,23 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ComposeTutorialTheme {
-        Greeting("Android")
-    }
-}
+
 
 data class Message(val author: String, val body: String)
+
+
+
+
+@Composable
+fun PreviewMessageCard() {
+    ComposeTutorialTheme {
+        Surface {
+            MessageCard(
+                msg = Message("Lexi", "Hey, take a look at Jetpack Compose, it's great!")
+            )
+        }
+    }
+}
 
 @Composable
 fun MessageCard(msg: Message) {
@@ -107,7 +179,9 @@ fun MessageCard(msg: Message) {
                 // surfaceColor color will be changing gradually from primary to surface
                 color = surfaceColor,
                 // animateContentSize will change the Surface size gradually
-                modifier = Modifier.animateContentSize().padding(1.dp)
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(1.dp)
             ) {
                 Text(
                     text = msg.body,
@@ -123,40 +197,6 @@ fun MessageCard(msg: Message) {
 }
 
 
-@Preview(name = "Light Mode")
-@Preview(
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true,
-    name = "Dark Mode"
-)
-@Composable
-fun PreviewMessageCard() {
-    ComposeTutorialTheme {
-        Surface {
-            MessageCard(
-                msg = Message("Lexi", "Hey, take a look at Jetpack Compose, it's great!")
-            )
-        }
-    }
-}
-
-
-@Composable
-fun Conversation(messages: List<Message>) {
-    LazyColumn {
-        items(messages) { message ->
-            MessageCard(message)
-        }
-    }
-}
-
-@Preview
-@Composable
-fun PreviewConversation() {
-    ComposeTutorialTheme {
-        Conversation(SampleData.conversationSample)
-    }
-}
 
 /**
  * SampleData for Jetpack Compose Tutorial
