@@ -57,28 +57,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ConversationScreen()
+            MyApp()
         }
     }
 }
 
-
-@Composable
-fun MyApp() {
-    val navController = rememberNavController()
-    NavHost(navController, startDestination = "profile") {
-        composable("profile") {
-            ProfileScreen(onNavigateToFriendsList = {
-                navController.navigate("friendslist")
-            })
-        }
-        composable("friendslist") {
-            FriendListScreen(onNavigateToProfile = {
-                navController.navigate("profile")
-            })
-        }
-    }
-}
 @Preview(name = "Light Mode")
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
@@ -86,8 +69,34 @@ fun MyApp() {
     name = "Dark Mode"
 )
 @Composable
-fun ConversationScreen() {
-    ComposeTutorialTheme{
+fun MyApp() {
+    ComposeTutorialTheme {
+        val navController = rememberNavController()
+        NavHost(navController, startDestination = "conversation") {
+            composable("conversation") {
+                ConversationScreen(onNavigateToNewScreen = {
+                    navController.navigate("newscreen")
+                })
+            }
+            composable("newscreen") {
+                NewScreen(onNavigateBack = {
+                    navController.navigate("conversation"){
+                        popUpTo("conversation"){
+                            inclusive = true
+                        }
+                    }
+                })
+            }
+        }
+    }
+}
+
+@Composable
+fun ConversationScreen(onNavigateToNewScreen: ()-> Unit) {
+    Column {
+        Button(onClick = onNavigateToNewScreen) {
+            Text(text = "See new screen")
+        }
         val messages = SampleData.conversationSample
         LazyColumn {
             items(messages) { message ->
@@ -95,6 +104,9 @@ fun ConversationScreen() {
             }
         }
     }
+
+
+
 }
 
 @Composable
@@ -102,14 +114,14 @@ fun ProfileScreen(onNavigateToFriendsList: () -> Unit)
 {
     Text("Profile")
     Button(onClick = onNavigateToFriendsList) {
-        Text(text = "See friends list")
+        Text(text = "Go back")
     }
 }
 
 @Composable
-fun FriendListScreen(onNavigateToProfile: () -> Unit) {
+fun NewScreen(onNavigateBack: () -> Unit) {
     Text("Friends List")
-    Button(onClick = { onNavigateToProfile() }) {
+    Button(onClick = { onNavigateBack() }) {
         Text("Go to Profile")
     }
 }
