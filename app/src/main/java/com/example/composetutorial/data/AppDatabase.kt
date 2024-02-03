@@ -1,6 +1,7 @@
 package com.example.composetutorial.data
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.room.ColumnInfo
 import androidx.room.Dao
@@ -15,6 +16,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
 class AppDatabase {
+
     class  UserRepository(private val userDao: UserDao){
         fun getUser(userID : Int) : User? {
             return userDao.readUserById(userID)
@@ -29,17 +31,18 @@ class AppDatabase {
         }
     }
 
-    @Entity (tableName = "user")
+    @Entity (tableName = "database")
     data class User(
         @PrimaryKey(autoGenerate = true) val uid: Int,
         @ColumnInfo(name = "first_name") val firstName: String?,
         @ColumnInfo(name = "last_name") val lastName: String?,
+        @ColumnInfo(name = "image") val image: String?,
     )
 
     @Dao
     interface UserDao{
 
-        @Query("SELECT * FROM user")
+        @Query("SELECT * FROM database")
         fun getAllUsers(): List<User>
 
 
@@ -47,14 +50,11 @@ class AppDatabase {
         suspend fun addUser(user: User)
 
 
-        @Query("SELECT * FROM user WHERE uid IN (:userId)")
+        @Query("SELECT * FROM database WHERE uid IN (:userId)")
         fun readUserById(userId: Int): User?
 
         @Update
         suspend fun updateUser(user : User)
-
-        @Query("DELETE FROM user")
-        suspend fun clearData()
 }
 
     @Database(entities = [User::class], version = 1, exportSchema = false)
@@ -74,7 +74,7 @@ class AppDatabase {
                     val instance= Room.databaseBuilder(
                         context.applicationContext,
                         AppDatabase ::class.java,
-                        "user_data"
+                        "database"
                     ).build()
                     INSTANCE = instance
                     return  instance

@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
 import android.content.res.Configuration
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,13 +44,16 @@ import androidx.compose.runtime.setValue
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextField
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.TextFieldValue
 
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.composetutorial.data.AppDatabase
 import com.example.composetutorial.data.UserViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +65,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private  lateinit var mUserViewModel: UserViewModel
     private var userName = ""
+    private var imageUri : Uri? = null
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,12 +83,14 @@ class MainActivity : ComponentActivity() {
     private suspend fun initUserData(data : AppDatabase.UserDao){
         var userData = data.readUserById(1)
         if(userData == null){
-            val tempUser = AppDatabase.User(1,"Test","Test")
+            val tempUser = AppDatabase.User(1,"Test","Test", "")
             data.addUser(tempUser)
             userName = tempUser.firstName.toString() + "Test"
+            imageUri = null
         }
         userData = data.readUserById(1)
         userName = userData?.firstName.toString() + " " + userData?.lastName.toString()
+        imageUri = Uri.parse(userData?.image)
     }
 
     private suspend fun changeUserData(data : AppDatabase.UserDao, userData : AppDatabase.User){
@@ -149,13 +160,18 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun NewScreen(onNavigateBack: () -> Unit) {
-        val database = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
-        val userData = database.readUserById(1)
-
         var firstNameText by remember { mutableStateOf(TextFieldValue("")) }
         var lastNameText by remember { mutableStateOf(TextFieldValue("")) }
         var imagePathUri by remember { mutableStateOf<Uri?>(null) }
 
+
+
+        val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia(),
+            onResult = { uri ->
+                imagePathUri = uri
+            }
+        )
         Column {
             Text("First name")
             TextField(
@@ -174,21 +190,29 @@ class MainActivity : ComponentActivity() {
                 }
             )
             Button(onClick = {
-
+                singlePhotoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
             }) {
                 Text("Change image")
             }
 
 
+
+
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val data = AppDatabase.User(1,firstNameText.text, lastNameText.text)
+                    val database = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
+
+                    val data = AppDatabase.User(1,firstNameText.text, lastNameText.text, imagePathUri?.toString())
                     changeUserData(database,data)
                 }
                 onNavigateBack()
             }) {
                 Text("Change setting")
             }
+
+            AsyncImage(model = imagePathUri, contentDescription = null, contentScale = ContentScale.Crop)
         }
 
 
@@ -226,17 +250,15 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MessageCard(msg: AppDatabase.AppDatabase.Companion.Message) {
         var data by remember { mutableStateOf(userName) }
-
-
+        val imageUri by remember { mutableStateOf(imageUri) }
         Row(modifier = Modifier.padding(all = 8.dp)) {
-            Image(
-                painter = painterResource(R.drawable.profile_picture),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
+            AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
             )
+
+
             Spacer(modifier = Modifier.width(8.dp))
 
             // We keep track if the message is expanded or not in this
