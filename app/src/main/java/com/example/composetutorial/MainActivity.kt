@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val data = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
+
             initUserData(data)
         }
     }
@@ -85,18 +86,20 @@ class MainActivity : ComponentActivity() {
         if(userData == null){
             val tempUser = AppDatabase.User(1,"Test","Test", "")
             data.addUser(tempUser)
-            userName = tempUser.firstName.toString() + "Test"
-            imageUri = null
         }
-        userData = data.readUserById(1)
-        userName = userData?.firstName.toString() + " " + userData?.lastName.toString()
-        imageUri = Uri.parse(userData?.image)
+        notifyChange(data)
     }
 
     private suspend fun changeUserData(data : AppDatabase.UserDao, userData : AppDatabase.User){
         data.updateUser(userData)
         val tempUserData = data.readUserById(1)
+        notifyChange(data)
+    }
+
+    private  suspend fun notifyChange(data : AppDatabase.UserDao){
+        val tempUserData = data.readUserById(1)
         userName = tempUserData?.firstName.toString() + " " + tempUserData?.lastName.toString()
+        imageUri = Uri.parse(tempUserData?.image)
     }
 
 
@@ -250,9 +253,10 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MessageCard(msg: AppDatabase.AppDatabase.Companion.Message) {
         var data by remember { mutableStateOf(userName) }
-        val imageUri by remember { mutableStateOf(imageUri) }
+        val imageUriz by remember { mutableStateOf(imageUri) }
+        Log.d("MyTag",imageUriz?.path.toString())
         Row(modifier = Modifier.padding(all = 8.dp)) {
-            AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier
+            AsyncImage(model = imageUriz, contentDescription = null, modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
                 .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)

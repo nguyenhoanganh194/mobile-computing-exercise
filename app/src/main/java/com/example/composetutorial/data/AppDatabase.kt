@@ -31,7 +31,7 @@ class AppDatabase {
         }
     }
 
-    @Entity (tableName = "database")
+    @Entity (tableName = "user_data")
     data class User(
         @PrimaryKey(autoGenerate = true) val uid: Int,
         @ColumnInfo(name = "first_name") val firstName: String?,
@@ -42,7 +42,7 @@ class AppDatabase {
     @Dao
     interface UserDao{
 
-        @Query("SELECT * FROM database")
+        @Query("SELECT * FROM user_data")
         fun getAllUsers(): List<User>
 
 
@@ -50,7 +50,7 @@ class AppDatabase {
         suspend fun addUser(user: User)
 
 
-        @Query("SELECT * FROM database WHERE uid IN (:userId)")
+        @Query("SELECT * FROM user_data WHERE uid IN (:userId)")
         fun readUserById(userId: Int): User?
 
         @Update
@@ -74,7 +74,7 @@ class AppDatabase {
                     val instance= Room.databaseBuilder(
                         context.applicationContext,
                         AppDatabase ::class.java,
-                        "database"
+                        "user_data"
                     ).build()
                     INSTANCE = instance
                     return  instance
