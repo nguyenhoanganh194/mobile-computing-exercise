@@ -1,5 +1,6 @@
 package com.example.composetutorial
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextField
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -97,9 +100,9 @@ fun MyApp() {
 fun ConversationScreen(onNavigateToNewScreen: ()-> Unit) {
     Column {
         Button(onClick = onNavigateToNewScreen) {
-            Text(text = "See new screen")
+            Text(text = "Change setting")
         }
-        val messages = AppDatabase.Companion.SampleData.conversationSample
+        val messages = AppDatabase.AppDatabase.Companion.SampleData.conversationSample
         LazyColumn {
             items(messages) { message ->
                 MessageCard(message)
@@ -122,10 +125,24 @@ fun ProfileScreen(onNavigateToFriendsList: () -> Unit)
 
 @Composable
 fun NewScreen(onNavigateBack: () -> Unit) {
-    Text("Friends List")
-    Button(onClick = { onNavigateBack() }) {
-        Text("Go to Profile")
+
+    var userNameText by remember { mutableStateOf(TextFieldValue("")) }
+
+
+    Column {
+        Text("Username")
+        TextField(
+            value = userNameText,
+            onValueChange = { newText ->
+                userNameText = newText
+            }
+        )
+        Button(onClick = { onNavigateBack() }) {
+            Text("Change setting")
+        }
     }
+
+
 }
 
 
