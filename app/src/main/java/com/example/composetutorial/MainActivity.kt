@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
 import android.content.res.Configuration
+import android.net.Uri
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -73,7 +74,7 @@ class MainActivity : ComponentActivity() {
     private suspend fun initUserData(data : AppDatabase.UserDao){
         var userData = data.readUserById(1)
         if(userData == null){
-            val tempUser = AppDatabase.User(1,"Test","Test", "")
+            val tempUser = AppDatabase.User(1,"Test","Test")
             data.addUser(tempUser)
             userName = tempUser.firstName.toString() + "Test"
         }
@@ -148,15 +149,17 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun NewScreen(onNavigateBack: () -> Unit) {
+        val database = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
+        val userData = database.readUserById(1)
 
         var firstNameText by remember { mutableStateOf(TextFieldValue("")) }
         var lastNameText by remember { mutableStateOf(TextFieldValue("")) }
-        var imagePathText by remember { mutableStateOf(TextFieldValue("")) }
-
+        var imagePathUri by remember { mutableStateOf<Uri?>(null) }
 
         Column {
             Text("First name")
             TextField(
+
                 value = firstNameText,
                 onValueChange = { newText ->
                     firstNameText = newText
@@ -170,13 +173,16 @@ class MainActivity : ComponentActivity() {
                     lastNameText = newText
                 }
             )
-            
+            Button(onClick = {
+
+            }) {
+                Text("Change image")
+            }
 
 
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val database = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
-                    val data = AppDatabase.User(1,firstNameText.text, lastNameText.text, "")
+                    val data = AppDatabase.User(1,firstNameText.text, lastNameText.text)
                     changeUserData(database,data)
                 }
                 onNavigateBack()
