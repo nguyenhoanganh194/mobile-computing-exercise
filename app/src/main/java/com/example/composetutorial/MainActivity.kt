@@ -1,71 +1,77 @@
 package com.example.composetutorial
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.composetutorial.ui.theme.ComposeTutorialTheme
 // ...
-import androidx.compose.foundation.layout.Column
+
+
+import android.content.res.Configuration
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.res.painterResource
-
-
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.border
-import android.content.res.Configuration
-import android.net.Uri
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.material3.Button
-import androidx.compose.material3.TextField
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.TextFieldValue
-
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.composetutorial.data.AppDatabase
 import com.example.composetutorial.data.UserViewModel
+import com.example.composetutorial.ui.theme.ComposeTutorialTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+
+import java.io.IOException
+
+import java.io.InputStream
+
+
+
 
 
 class MainActivity : ComponentActivity() {
     private  lateinit var mUserViewModel: UserViewModel
     private var userName = ""
-    private var imageUri : Uri? = null
+    private var bitmapImage : ImageBitmap? = null
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,7 +90,7 @@ class MainActivity : ComponentActivity() {
     private suspend fun initUserData(data : AppDatabase.UserDao){
         var userData = data.readUserById(1)
         if(userData == null){
-            val tempUser = AppDatabase.User(1,"Test","Test", "")
+            val tempUser = AppDatabase.User(1,"Test","Test", null)
             data.addUser(tempUser)
         }
         notifyChange(data)
@@ -92,14 +98,27 @@ class MainActivity : ComponentActivity() {
 
     private suspend fun changeUserData(data : AppDatabase.UserDao, userData : AppDatabase.User){
         data.updateUser(userData)
-        val tempUserData = data.readUserById(1)
         notifyChange(data)
     }
 
     private  suspend fun notifyChange(data : AppDatabase.UserDao){
         val tempUserData = data.readUserById(1)
         userName = tempUserData?.firstName.toString() + " " + tempUserData?.lastName.toString()
-        imageUri = Uri.parse(tempUserData?.image)
+        try {
+            val byteArray = tempUserData?.image
+            if (byteArray != null) {
+                val temp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                if (temp != null) {
+                    bitmapImage = temp.asImageBitmap()
+                }
+            }
+        }
+        catch (e: Exception)
+        {
+            Log.d("MyTask", e.toString())
+        }
+
+
     }
 
 
@@ -206,9 +225,17 @@ class MainActivity : ComponentActivity() {
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     val database = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
+                    if(imagePathUri != null){
+                        val iStream = contentResolver.openInputStream(imagePathUri!!)
+                        if(iStream != null){
+                            val inputData: ByteArray? = getBytes(iStream)
+                            val data = AppDatabase.User(1,firstNameText.text, lastNameText.text, inputData)
+                            Log.d("Test", "Pass")
+                            changeUserData(database,data)
+                        }
 
-                    val data = AppDatabase.User(1,firstNameText.text, lastNameText.text, imagePathUri?.toString())
-                    changeUserData(database,data)
+                    }
+
                 }
                 onNavigateBack()
             }) {
@@ -231,7 +258,17 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-
+    @Throws(IOException::class)
+    fun getBytes(inputStream: InputStream): ByteArray? {
+        val byteBuffer = ByteArrayOutputStream()
+        val bufferSize = 1024
+        val buffer = ByteArray(bufferSize)
+        var len = 0
+        while (inputStream.read(buffer).also { len = it } != -1) {
+            byteBuffer.write(buffer, 0, len)
+        }
+        return byteBuffer.toByteArray()
+    }
 
 
 
@@ -253,14 +290,16 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MessageCard(msg: AppDatabase.AppDatabase.Companion.Message) {
         var data by remember { mutableStateOf(userName) }
-        val imageUriz by remember { mutableStateOf(imageUri) }
-        Log.d("MyTag",imageUriz?.path.toString())
+
+
+        val imageBitmap by remember { mutableStateOf(bitmapImage) }
         Row(modifier = Modifier.padding(all = 8.dp)) {
-            AsyncImage(model = imageUriz, contentDescription = null, modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
-            )
+//            AsyncImage(model = imageUriz, contentDescription = null, modifier = Modifier
+//                .size(40.dp)
+//                .clip(CircleShape)
+//                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
+//            )
+            DisplayImage(imageBitmap)
 
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -306,6 +345,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    @Composable
+    fun DisplayImage(bitmap: ImageBitmap?) {
+        if(bitmap != null){
+            Log.d("MyTask","1")
+            Image(
+                painter = BitmapPainter(bitmap),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
+            )
+        }
+
     }
 }
 

@@ -36,7 +36,8 @@ class AppDatabase {
         @PrimaryKey(autoGenerate = true) val uid: Int,
         @ColumnInfo(name = "first_name") val firstName: String?,
         @ColumnInfo(name = "last_name") val lastName: String?,
-        @ColumnInfo(name = "image") val image: String?,
+        @ColumnInfo(name = "image") val image: ByteArray? = null
+
     )
 
     @Dao
