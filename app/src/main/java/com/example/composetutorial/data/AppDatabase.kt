@@ -1,6 +1,7 @@
 package com.example.composetutorial.data
 
 import android.content.Context
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
@@ -12,16 +13,19 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.composetutorial.Message
-
+import androidx.room.Update
 class AppDatabase {
     class  UserRepository(private val userDao: UserDao){
-        suspend fun getUser(userID : Int) : User{
+        fun getUser(userID : Int) : User? {
             return userDao.readUserById(userID)
         }
 
         suspend fun addUser(user: User){
             userDao.addUser(user)
+        }
+
+        suspend fun updateUser(user:User){
+            userDao.updateUser(user)
         }
     }
 
@@ -29,18 +33,29 @@ class AppDatabase {
     data class User(
         @PrimaryKey(autoGenerate = true) val uid: Int,
         @ColumnInfo(name = "first_name") val firstName: String?,
-        @ColumnInfo(name = "last_name") val lastName: String?
+        @ColumnInfo(name = "last_name") val lastName: String?,
+        @ColumnInfo(name = "image") val imagePath: String?
     )
 
     @Dao
     interface UserDao{
+
+        @Query("SELECT * FROM user")
+        fun getAllUsers(): List<User>
+
 
         @Insert(onConflict = OnConflictStrategy.IGNORE)
         suspend fun addUser(user: User)
 
 
         @Query("SELECT * FROM user WHERE uid IN (:userId)")
-        fun readUserById(userId: Int): User
+        fun readUserById(userId: Int): User?
+
+        @Update
+        suspend fun updateUser(user : User)
+
+        @Query("DELETE FROM user")
+        suspend fun clearData()
 }
 
     @Database(entities = [User::class], version = 1, exportSchema = false)
@@ -67,6 +82,9 @@ class AppDatabase {
                 }
 
             }
+            data class Message(val author: String, val body: String)
+
+
             object SampleData {
                 // Sample conversation data
                 val conversationSample = listOf(
