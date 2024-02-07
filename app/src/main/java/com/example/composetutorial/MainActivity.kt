@@ -3,9 +3,14 @@ package com.example.composetutorial
 // ...
 
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -47,6 +52,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -61,7 +69,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
 import java.io.IOException
-
+import android.Manifest
 import java.io.InputStream
 
 
@@ -84,6 +92,7 @@ class MainActivity : ComponentActivity() {
             val data = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
 
             initUserData(data)
+            createNotificationChannel()
         }
     }
 
@@ -120,6 +129,88 @@ class MainActivity : ComponentActivity() {
 
 
     }
+
+    val channeID = "channel_ID"
+
+    private fun createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is not in the Support Library.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "channel_name"
+            val descriptionText = "channel_description"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channeID, name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system.
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+            Log.d("Test", "createNotificationChannel")
+        }
+    }
+
+
+
+    fun createNotification(textTitle :String, textContent: String){
+        Log.d("Test", "Test")
+        var builder = NotificationCompat.Builder(this, channeID)
+            .setSmallIcon(R.drawable.profile_picture)
+            .setContentTitle(textTitle)
+            .setContentText(textContent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+
+        with(NotificationManagerCompat.from(this)) {
+            if (ActivityCompat.checkSelfPermission(
+                    this@MainActivity,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.d("Test", "Not permission")
+
+                ActivityCompat.requestPermissions(this@MainActivity,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    50);
+                // TODO: Consider calling
+                // ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                // public fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+                //                                        grantResults: IntArray)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+
+                return@with
+            }
+            // notificationId is a unique int for each notification that you must define.
+            Log.d("Test", "createNotification")
+            notify(100, builder.build())
+        }
+    }
+    public override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+                                                   grantResults: IntArray)
+    {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if(requestCode == 50){
+
+        }
+    }
+
+    //    fun AssignNotificationTapAction(){
+//        val intent = Intent(this, AlertDetails::class.java).apply {
+//            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//        }
+//        val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+//
+//        val builder = NotificationCompat.Builder(this, channeID)
+//            .setSmallIcon(R.drawable.notification_icon)
+//            .setContentTitle("My notification")
+//            .setContentText("Hello World!")
+//            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+//            // Set the intent that fires when the user taps the notification.
+//            .setContentIntent(pendingIntent)
+//            .setAutoCancel(true)
+//    }
 
 
     @Preview(name = "Light Mode")
@@ -180,6 +271,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+
+
     @Composable
     fun NewScreen(onNavigateBack: () -> Unit) {
         var firstNameText by remember { mutableStateOf(TextFieldValue("")) }
@@ -219,7 +313,13 @@ class MainActivity : ComponentActivity() {
                 Text("Change image")
             }
 
-
+            Button(onClick = {
+                CoroutineScope(Dispatchers.IO).launch {
+                    createNotification("Test", "TESTe")
+                }
+            }) {
+                Text("Send notification")
+            }
 
 
             Button(onClick = {
