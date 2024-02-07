@@ -2,7 +2,6 @@ package com.example.composetutorial
 
 // ...
 
-
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -70,6 +69,8 @@ import java.io.ByteArrayOutputStream
 
 import java.io.IOException
 import android.Manifest
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import java.io.InputStream
 
 
@@ -92,7 +93,7 @@ class MainActivity : ComponentActivity() {
             val data = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
 
             initUserData(data)
-            createNotificationChannel()
+
         }
     }
 
@@ -132,42 +133,34 @@ class MainActivity : ComponentActivity() {
 
     val channeID = "channel_ID"
 
-    private fun createNotificationChannel() {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is not in the Support Library.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "channel_name"
-            val descriptionText = "channel_description"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channeID, name, importance).apply {
-                description = descriptionText
-            }
-            // Register the channel with the system.
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-            Log.d("Test", "createNotificationChannel")
-        }
-    }
+//    private fun createNotificationChannel() {
+//        // Create the NotificationChannel, but only on API 26+ because
+//        // the NotificationChannel class is not in the Support Library.
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            val name = "channel_name"
+//            val descriptionText = "channel_description"
+//            val importance = NotificationManager.IMPORTANCE_DEFAULT
+//            val channel = NotificationChannel(channeID, name, importance).apply {
+//                description = descriptionText
+//            }
+//            // Register the channel with the system.
+//            val notificationManager: NotificationManager =
+//                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//            notificationManager.createNotificationChannel(channel)
+//            Log.d("Test", "createNotificationChannel")
+//        }
+//    }
 
 
 
     fun createNotification(textTitle :String, textContent: String){
-        Log.d("Test", "Test")
-        var builder = NotificationCompat.Builder(this, channeID)
-            .setSmallIcon(R.drawable.profile_picture)
-            .setContentTitle(textTitle)
-            .setContentText(textContent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-
         with(NotificationManagerCompat.from(this)) {
             if (ActivityCompat.checkSelfPermission(
                     this@MainActivity,
                     Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                Log.d("Test", "Not permission")
+
 
                 ActivityCompat.requestPermissions(this@MainActivity,
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -182,9 +175,9 @@ class MainActivity : ComponentActivity() {
 
                 return@with
             }
+            val serviceIntent = Intent(applicationContext, NotificationService::class.java)
+            ContextCompat.startForegroundService(applicationContext, serviceIntent)
             // notificationId is a unique int for each notification that you must define.
-            Log.d("Test", "createNotification")
-            notify(100, builder.build())
         }
     }
     public override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
@@ -192,7 +185,8 @@ class MainActivity : ComponentActivity() {
     {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if(requestCode == 50){
-
+            val serviceIntent = Intent(applicationContext, NotificationService::class.java)
+            ContextCompat.startForegroundService(applicationContext, serviceIntent)
         }
     }
 
