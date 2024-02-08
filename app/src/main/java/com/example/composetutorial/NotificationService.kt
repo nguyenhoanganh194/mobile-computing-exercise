@@ -58,7 +58,7 @@ class NotificationService : Service(), SensorEventListener {
 
                 val gForce = Math.sqrt((x * x + y * y + z * z).toDouble())
 
-                if (gForce > 1.2 * 10) { // Adjust this threshold as needed
+                if (gForce > 1.5 * 10) { // Adjust this threshold as needed
                     showSensorNotification(gForce)
                 }
             }
