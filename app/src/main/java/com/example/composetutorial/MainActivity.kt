@@ -92,6 +92,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.delay
 import java.io.File
 
 import java.text.SimpleDateFormat
@@ -265,6 +266,8 @@ class MainActivity : ComponentActivity() {
                     MainScreen(onNavigateBack = {
                         CoroutineScope(Dispatchers.IO).launch {
                             saveImageToDataBase(it)
+
+
                         }
 
                         navController.navigate("conversation"){
@@ -286,6 +289,9 @@ class MainActivity : ComponentActivity() {
             val byteArray = bitmapToByteArray(it)
             post.addPost(AppDatabase.Post(path = byteArray, time = currentTime))
             notifyPostChange(post)
+            setContent{
+                MyApp()
+            }
         }
     }
     fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
@@ -490,22 +496,30 @@ class MainActivity : ComponentActivity() {
                     // surfaceColor color will be changing gradually from primary to surface
                     color = surfaceColor,
                     // animateContentSize will change the Surface size gradually
-                    modifier = Modifier
-                        .animateContentSize()
-                        .padding(1.dp)
+
                 ) {
-                    if(msg.image != null){
-                        var imageBitmap = byteArrayToBitmap(msg.image)
-                        DisplayImage(imageBitmap)
+                    Column {
+                        if(msg.image != null){
+                            var imageBitmap = byteArrayToBitmap(msg.image)
+                            if(imageBitmap != null){
+                                Log.d("MyTask","1")
+                                Image(
+                                    painter = BitmapPainter(imageBitmap),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = msg.time,
+                            modifier = Modifier.padding(all = 4.dp),
+                            // If the message is expanded, we display all its content
+                            // otherwise we only display the first line
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
-                      //Text(
-//                        text = msg.time,
-//                        modifier = Modifier.padding(all = 4.dp),
-//                        // If the message is expanded, we display all its content
-//                        // otherwise we only display the first line
-//                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-//                        style = MaterialTheme.typography.bodyMedium
-//                    )
+
                 }
             }
         }
