@@ -70,10 +70,23 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import android.Manifest
 import android.content.Intent
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import com.example.composetutorial.ui.MainScreen
 import java.io.InputStream
 
-
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 
 
@@ -91,9 +104,7 @@ class MainActivity : ComponentActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val data = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
-
             initUserData(data)
-
         }
     }
 
@@ -110,6 +121,8 @@ class MainActivity : ComponentActivity() {
         data.updateUser(userData)
         notifyChange(data)
     }
+
+
 
     private  suspend fun notifyChange(data : AppDatabase.UserDao){
         val tempUserData = data.readUserById(1)
@@ -221,10 +234,21 @@ class MainActivity : ComponentActivity() {
                 composable("conversation") {
                     ConversationScreen(onNavigateToNewScreen = {
                         navController.navigate("newscreen")
+                    }, onNavigateToCamera = {
+                        navController.navigate("camera")
                     })
                 }
                 composable("newscreen") {
                     NewScreen(onNavigateBack = {
+                        navController.navigate("conversation"){
+                            popUpTo("conversation"){
+                                inclusive = true
+                            }
+                        }
+                    })
+                }
+                composable("camera") {
+                    MainScreen(onNavigateBack = {
                         navController.navigate("conversation"){
                             popUpTo("conversation"){
                                 inclusive = true
@@ -237,10 +261,14 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ConversationScreen(onNavigateToNewScreen: ()-> Unit) {
+    fun ConversationScreen(onNavigateToNewScreen: ()-> Unit, onNavigateToCamera: ()-> Unit) {
         Column {
+
             Button(onClick = onNavigateToNewScreen) {
-                Text(text = "Change setting")
+                Icon(imageVector = Icons.Default.Settings, contentDescription = "Setting")
+            }
+            Button(onClick = onNavigateToCamera) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Camera")
             }
             val messages = AppDatabase.AppDatabase.Companion.SampleData.conversationSample
             LazyColumn {
