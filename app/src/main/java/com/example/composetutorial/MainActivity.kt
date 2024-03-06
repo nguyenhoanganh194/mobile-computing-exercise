@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
     private var userName = ""
     private var bitmapImage : ImageBitmap? = null
     private var posts: List<AppDatabase.Post>? = null
+    private var postChange = false
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,6 +122,7 @@ class MainActivity : ComponentActivity() {
 
     private fun notifyPostChange(post: AppDatabase.PostDao) {
         posts = post.getAllPosts()
+        postChange = true
     }
 
     private suspend fun initUserData(data : AppDatabase.UserDao){
@@ -288,8 +290,11 @@ class MainActivity : ComponentActivity() {
             val post = AppDatabase.PostDatabase.getDatabase(applicationContext).postDao()
             val byteArray = bitmapToByteArray(it)
             post.addPost(AppDatabase.Post(path = byteArray, time = currentTime))
+            delay(500)
             notifyPostChange(post)
+            delay(500)
             setContent{
+
                 MyApp()
             }
         }
@@ -313,6 +318,7 @@ class MainActivity : ComponentActivity() {
     fun ConversationScreen(onNavigateToNewScreen: ()-> Unit, onNavigateToCamera: ()-> Unit) {
         Column {
             var messages by remember { mutableStateOf(posts) }
+            var changed by remember{mutableStateOf(postChange)}
             Button(onClick = onNavigateToNewScreen) {
                 Icon(imageVector = Icons.Default.Settings, contentDescription = "Setting")
             }
