@@ -166,10 +166,10 @@ class AppDatabase {
     @Entity (tableName = "user_post")
     data class Post(
         @PrimaryKey(autoGenerate = true) val uid: Int,
-        @ColumnInfo(name = "image_path") val path: String,
+        @ColumnInfo(name = "image") val image: ByteArray? = null,
         @ColumnInfo(name = "time") val time: String
     ){
-        constructor(path : String, time : String): this(0,path, time)
+        constructor(path : ByteArray?, time : String): this(0,path, time)
     }
 
 

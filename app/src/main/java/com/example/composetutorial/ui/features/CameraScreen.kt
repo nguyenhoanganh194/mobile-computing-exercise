@@ -46,7 +46,7 @@ import java.util.concurrent.Executor
 
 
 @Composable
-fun CameraScreen(onNavigateBack: (String?)->Unit) {
+fun CameraScreen(onNavigateBack: (Bitmap)->Unit) {
     CameraContent(
         onPhotoCaptured = onNavigateBack
     )
@@ -55,7 +55,7 @@ fun CameraScreen(onNavigateBack: (String?)->Unit) {
 fun storePhotoInGallery(path: String?,onNavigateBack: ()->Unit) {
     if(path!= null){
         Log.d("Camera", "Photo capture:$path")
-        
+
         onNavigateBack.invoke()
 
     }
@@ -63,7 +63,7 @@ fun storePhotoInGallery(path: String?,onNavigateBack: ()->Unit) {
 
 @Composable
 private fun CameraContent(
-    onPhotoCaptured: (String?) -> Unit,
+    onPhotoCaptured: (Bitmap) -> Unit,
 ) {
 
     val context: Context = LocalContext.current
@@ -105,31 +105,45 @@ private fun CameraContent(
 private fun capturePhoto(
     context: Context,
     cameraController: LifecycleCameraController,
-    onPhotoCaptured: (String?) -> Unit
+    onPhotoCaptured: (Bitmap) -> Unit
 ) {
     val mainExecutor: Executor = ContextCompat.getMainExecutor(context)
-
-    val contentValues = ContentValues()
-    contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-
-    contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, "NEW_IMAGE");
-    val options = OutputFileOptions.Builder(
-        context.contentResolver, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-    ).build()
+    cameraController.takePicture(mainExecutor, object : ImageCapture.OnImageCapturedCallback() {
+        override fun onCaptureSuccess(image: ImageProxy) {
+            val correctedBitmap: Bitmap = image
+                .toBitmap()
 
 
-    cameraController.takePicture(options, mainExecutor,object : ImageCapture.OnImageSavedCallback {
-        override fun onError(error: ImageCaptureException) {
-            Log.e("Camera", "Photo capture failed: ${error.message}", error)
+
+            onPhotoCaptured(correctedBitmap)
+            image.close()
         }
 
-        override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-            // Image saved successfully
-            val savedUri = outputFileResults.savedUri
-            onPhotoCaptured.invoke(savedUri?.path)
-            Log.d("Camera", "Photo capture succeeded")
+        override fun onError(exception: ImageCaptureException) {
+            Log.e("CameraContent", "Error capturing image", exception)
         }
     })
+//    val contentValues = ContentValues()
+//    contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//
+//    contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, "NEW_IMAGE");
+//    val options = OutputFileOptions.Builder(
+//        context.contentResolver, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+//    ).build()
+//
+//
+//    cameraController.takePicture(options, mainExecutor,object : ImageCapture.OnImageSavedCallback {
+//        override fun onError(error: ImageCaptureException) {
+//            Log.e("Camera", "Photo capture failed: ${error.message}", error)
+//        }
+//
+//        override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+//            // Image saved successfully
+//            val savedUri = outputFileResults.savedUri
+//            onPhotoCaptured.invoke(savedUri?.path)
+//            Log.d("Camera", "Photo capture succeeded")
+//        }
+//    })
 
 }
 

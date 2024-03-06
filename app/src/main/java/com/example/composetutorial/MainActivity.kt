@@ -70,6 +70,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import android.Manifest
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -277,14 +278,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun saveImageToDataBase(it: String?) {
+    private suspend fun saveImageToDataBase(it: Bitmap) {
         if(it != null){
             val sdf = SimpleDateFormat("dd/MM/yyyy - HH:mm", Locale.getDefault())
             val currentTime = sdf.format(Date())
-            var post = AppDatabase.PostDatabase.getDatabase(applicationContext).postDao()
-            post.addPost(AppDatabase.Post(path = it, time = currentTime))
+            val post = AppDatabase.PostDatabase.getDatabase(applicationContext).postDao()
+            val byteArray = bitmapToByteArray(it)
+            post.addPost(AppDatabase.Post(path = byteArray, time = currentTime))
             notifyPostChange(post)
         }
+    }
+    fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return stream.toByteArray()
+    }
+
+    fun byteArrayToBitmap(byteArray : ByteArray) : ImageBitmap? {
+        val temp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+        if (temp != null) {
+            bitmapImage = temp.asImageBitmap()
+            return bitmapImage
+        }
+        return null
     }
 
     @Composable
@@ -301,7 +317,8 @@ class MainActivity : ComponentActivity() {
             if(messages != null){
                 LazyColumn {
                     items(messages!!) { message ->
-                        MessageCard(message)
+                        var post by remember{ mutableStateOf(message) }
+                        MessageCard(post)
                     }
                 }
             }
@@ -477,22 +494,18 @@ class MainActivity : ComponentActivity() {
                         .animateContentSize()
                         .padding(1.dp)
                 ) {
-                    val imageFile = File(msg.path)
-                    val painter: Painter = rememberAsyncImagePainter(imageFile)
-                    Log.d("Camera",msg.path)
-                    Image(
-                        painter = painter,
-                        contentDescription = "Image from file",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Text(
-                        text = msg.time,
-                        modifier = Modifier.padding(all = 4.dp),
-                        // If the message is expanded, we display all its content
-                        // otherwise we only display the first line
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    if(msg.image != null){
+                        var imageBitmap = byteArrayToBitmap(msg.image)
+                        DisplayImage(imageBitmap)
+                    }
+                      //Text(
+//                        text = msg.time,
+//                        modifier = Modifier.padding(all = 4.dp),
+//                        // If the message is expanded, we display all its content
+//                        // otherwise we only display the first line
+//                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+//                        style = MaterialTheme.typography.bodyMedium
+//                    )
                 }
             }
         }
@@ -511,6 +524,18 @@ class MainActivity : ComponentActivity() {
                     .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
             )
         }
+
+    }
+
+    @Composable
+    fun DisplayPostImage(imageUri: String) {
+        Log.d("MyTask","1")
+        AsyncImage(model = "$imageUri.jpg", contentDescription = null, modifier = Modifier
+            .size(80.dp)
+            .clip(CircleShape)
+            .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
+        )
+
 
     }
 }
