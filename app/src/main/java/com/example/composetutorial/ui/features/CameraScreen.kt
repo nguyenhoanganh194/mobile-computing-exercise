@@ -41,23 +41,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.example.composetutorial.data.AppDatabase
 import java.util.concurrent.Executor
 
 
 @Composable
-fun CameraScreen(onNavigateBack: ()->Unit) {
+fun CameraScreen(onNavigateBack: (String?)->Unit) {
     CameraContent(
-        onPhotoCaptured = {
-            storePhotoInGallery(it, onNavigateBack)
-        }
+        onPhotoCaptured = onNavigateBack
     )
 }
 
 fun storePhotoInGallery(path: String?,onNavigateBack: ()->Unit) {
     if(path!= null){
         Log.d("Camera", "Photo capture:$path")
-
-
+        
         onNavigateBack.invoke()
 
     }

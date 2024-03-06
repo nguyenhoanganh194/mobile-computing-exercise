@@ -37,8 +37,9 @@ class AppDatabase {
         @ColumnInfo(name = "first_name") val firstName: String?,
         @ColumnInfo(name = "last_name") val lastName: String?,
         @ColumnInfo(name = "image") val image: ByteArray? = null
-
     )
+
+
 
     @Dao
     interface UserDao{
@@ -57,6 +58,8 @@ class AppDatabase {
         @Update
         suspend fun updateUser(user : User)
 }
+
+
 
     @Database(entities = [User::class], version = 1, exportSchema = false)
     abstract class AppDatabase : RoomDatabase() {
@@ -160,5 +163,52 @@ class AppDatabase {
     }
 
 
+    @Entity (tableName = "user_post")
+    data class Post(
+        @PrimaryKey(autoGenerate = true) val uid: Int,
+        @ColumnInfo(name = "image_path") val path: String,
+        @ColumnInfo(name = "time") val time: String
+    ){
+        constructor(path : String, time : String): this(0,path, time)
+    }
+
+
+    @Dao
+    interface PostDao{
+        @Query("SELECT * FROM user_post")
+        fun getAllPosts(): List<Post>
+        @Insert(onConflict = OnConflictStrategy.IGNORE)
+        suspend fun addPost(post: Post)
+
+
+    }
+
+    @Database(entities = [Post::class], version = 1, exportSchema = false)
+    abstract class PostDatabase : RoomDatabase() {
+        abstract fun postDao(): PostDao
+
+        companion object{
+            @Volatile
+            private var INSTANCE:PostDatabase? = null
+
+            fun getDatabase(context: Context): PostDatabase{
+                val temp = INSTANCE;
+                if(temp != null){
+                    return temp
+                }
+                synchronized(this){
+                    val instance= Room.databaseBuilder(
+                        context.applicationContext,
+                        PostDatabase ::class.java,
+                        "user_post"
+                    ).build()
+                    INSTANCE = instance
+                    return  instance
+                }
+
+            }
+
+        }
+    }
 
 }

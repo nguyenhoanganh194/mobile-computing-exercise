@@ -12,7 +12,7 @@ import com.example.composetutorial.ui.features.CameraScreen
 import com.example.composetutorial.ui.features.NoPermissionScreen
 
 @Composable
-fun MainScreen(onNavigateBack : ()->Unit) {
+fun MainScreen(onNavigateBack : (String?)->Unit) {
 
     val cameraPermissionState: PermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
@@ -27,7 +27,7 @@ fun MainScreen(onNavigateBack : ()->Unit) {
 private fun MainContent(
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
-    onNavigateBack: ()->Unit
+    onNavigateBack: (String?)->Unit
 ) {
 
     if (hasPermission) {

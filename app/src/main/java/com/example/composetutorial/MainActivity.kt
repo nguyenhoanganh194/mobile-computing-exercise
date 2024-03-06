@@ -70,16 +70,20 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import android.Manifest
 import android.content.Intent
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.example.composetutorial.ui.MainScreen
 import java.io.InputStream
 
@@ -87,14 +91,17 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import java.io.File
 
-
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private  lateinit var mUserViewModel: UserViewModel
     private var userName = ""
     private var bitmapImage : ImageBitmap? = null
-
+    private var posts: List<AppDatabase.Post>? = null
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,8 +111,14 @@ class MainActivity : ComponentActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val data = AppDatabase.AppDatabase.getDatabase(applicationContext).userDao()
+            val post = AppDatabase.PostDatabase.getDatabase(applicationContext).postDao()
             initUserData(data)
+            notifyPostChange(post)
         }
+    }
+
+    private fun notifyPostChange(post: AppDatabase.PostDao) {
+        posts = post.getAllPosts()
     }
 
     private suspend fun initUserData(data : AppDatabase.UserDao){
@@ -249,6 +262,10 @@ class MainActivity : ComponentActivity() {
                 }
                 composable("camera") {
                     MainScreen(onNavigateBack = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            saveImageToDataBase(it)
+                        }
+
                         navController.navigate("conversation"){
                             popUpTo("conversation"){
                                 inclusive = true
@@ -260,22 +277,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private suspend fun saveImageToDataBase(it: String?) {
+        if(it != null){
+            val sdf = SimpleDateFormat("dd/MM/yyyy - HH:mm", Locale.getDefault())
+            val currentTime = sdf.format(Date())
+            var post = AppDatabase.PostDatabase.getDatabase(applicationContext).postDao()
+            post.addPost(AppDatabase.Post(path = it, time = currentTime))
+            notifyPostChange(post)
+        }
+    }
+
     @Composable
     fun ConversationScreen(onNavigateToNewScreen: ()-> Unit, onNavigateToCamera: ()-> Unit) {
         Column {
-
+            var messages by remember { mutableStateOf(posts) }
             Button(onClick = onNavigateToNewScreen) {
                 Icon(imageVector = Icons.Default.Settings, contentDescription = "Setting")
             }
             Button(onClick = onNavigateToCamera) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Camera")
             }
-            val messages = AppDatabase.AppDatabase.Companion.SampleData.conversationSample
-            LazyColumn {
-                items(messages) { message ->
-                    MessageCard(message)
+
+            if(messages != null){
+                LazyColumn {
+                    items(messages!!) { message ->
+                        MessageCard(message)
+                    }
                 }
             }
+
         }
 
 
@@ -397,20 +427,11 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun PreviewMessageCard() {
-        ComposeTutorialTheme {
-            Surface {
-                MessageCard(
-                    msg = AppDatabase.AppDatabase.Companion.Message(
-                        "Lexi",
-                        "Hey, take a look at Jetpack Compose, it's great!"
-                    )
-                )
-            }
-        }
+
     }
 
     @Composable
-    fun MessageCard(msg: AppDatabase.AppDatabase.Companion.Message) {
+    fun MessageCard(msg: AppDatabase.Post) {
         var data by remember { mutableStateOf(userName) }
 
 
@@ -456,8 +477,16 @@ class MainActivity : ComponentActivity() {
                         .animateContentSize()
                         .padding(1.dp)
                 ) {
+                    val imageFile = File(msg.path)
+                    val painter: Painter = rememberAsyncImagePainter(imageFile)
+                    Log.d("Camera",msg.path)
+                    Image(
+                        painter = painter,
+                        contentDescription = "Image from file",
+                        modifier = Modifier.fillMaxSize()
+                    )
                     Text(
-                        text = msg.body,
+                        text = msg.time,
                         modifier = Modifier.padding(all = 4.dp),
                         // If the message is expanded, we display all its content
                         // otherwise we only display the first line
