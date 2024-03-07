@@ -2,14 +2,10 @@ package com.example.composetutorial
 
 // ...
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,7 +14,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,7 +47,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -69,31 +63,26 @@ import java.io.ByteArrayOutputStream
 
 import java.io.IOException
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import com.example.composetutorial.ui.MainScreen
 import java.io.InputStream
 
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.delay
-import java.io.File
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -103,8 +92,7 @@ class MainActivity : ComponentActivity() {
     private  lateinit var mUserViewModel: UserViewModel
     private var userName = ""
     private var bitmapImage : ImageBitmap? = null
-    private var posts: List<AppDatabase.Post>? = null
-    private var postChange = false
+    private var posts: SnapshotStateList<AppDatabase.Post> = SnapshotStateList<AppDatabase.Post>()
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,8 +109,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun notifyPostChange(post: AppDatabase.PostDao) {
-        posts = post.getAllPosts()
-        postChange = true
+        var allPosts = post.getAllPosts()
+        posts = mutableStateListOf<AppDatabase.Post>().apply {
+            addAll(allPosts)
+        }
     }
 
     private suspend fun initUserData(data : AppDatabase.UserDao){
@@ -291,8 +281,8 @@ class MainActivity : ComponentActivity() {
             val byteArray = bitmapToByteArray(it)
             post.addPost(AppDatabase.Post(path = byteArray, time = currentTime))
             delay(500)
-            notifyPostChange(post)
             delay(500)
+            notifyPostChange(post)
             setContent{
 
                 MyApp()
@@ -308,37 +298,107 @@ class MainActivity : ComponentActivity() {
     fun byteArrayToBitmap(byteArray : ByteArray) : ImageBitmap? {
         val temp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
         if (temp != null) {
-            bitmapImage = temp.asImageBitmap()
-            return bitmapImage
+            return temp.asImageBitmap()
         }
         return null
     }
 
+    @SuppressLint("MutableCollectionMutableState")
     @Composable
     fun ConversationScreen(onNavigateToNewScreen: ()-> Unit, onNavigateToCamera: ()-> Unit) {
         Column {
-            var messages by remember { mutableStateOf(posts) }
-            var changed by remember{mutableStateOf(postChange)}
+            var _messages by remember { mutableStateOf(posts.toList()) }
             Button(onClick = onNavigateToNewScreen) {
                 Icon(imageVector = Icons.Default.Settings, contentDescription = "Setting")
             }
             Button(onClick = onNavigateToCamera) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Camera")
             }
-
-            if(messages != null){
-                LazyColumn {
-                    items(messages!!) { message ->
-                        var post by remember{ mutableStateOf(message) }
-                        MessageCard(post)
-                    }
+            LazyColumn {
+                items(_messages) { message ->
+                    MessageCard(message)
                 }
             }
-
         }
+    }
+    @Composable
+    fun MessageCard(msg: AppDatabase.Post) {
+        var data by remember { mutableStateOf(userName) }
+        val imageBitmap by remember { mutableStateOf(bitmapImage) }
+        Row(modifier = Modifier.padding(all = 8.dp)) {
+//            AsyncImage(model = imageUriz, contentDescription = null, modifier = Modifier
+//                .size(40.dp)
+//                .clip(CircleShape)
+//                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
+//            )
+            DisplayImage(imageBitmap)
 
 
+            Spacer(modifier = Modifier.width(8.dp))
 
+            // We keep track if the message is expanded or not in this
+            // variable
+            var isExpanded by remember { mutableStateOf(false) }
+            // surfaceColor will be updated gradually from one color to the other
+            val surfaceColor by animateColorAsState(
+                if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+            )
+
+            // We toggle the isExpanded variable when we click on this Column
+
+
+            Column(modifier = Modifier.clickable { isExpanded = !isExpanded }) {
+                Text(
+                    text = data,
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    shadowElevation = 1.dp,
+                    // surfaceColor color will be changing gradually from primary to surface
+                    color = surfaceColor,
+                    // animateContentSize will change the Surface size gradually
+
+                ) {
+                    Column {
+                        if(msg.image != null){
+                            var imageBitmapForMessage = byteArrayToBitmap(msg.image)
+                            if(imageBitmapForMessage != null){
+                                Log.d("MyTask","1")
+                                Image(
+                                    painter = BitmapPainter(imageBitmapForMessage),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = msg.time,
+                            modifier = Modifier.padding(all = 4.dp),
+                            // If the message is expanded, we display all its content
+                            // otherwise we only display the first line
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AsyncImage(url: Bitmap) {
+        val painter = rememberAsyncImagePainter(model = url)
+        Image(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 
     @Composable
@@ -453,83 +513,6 @@ class MainActivity : ComponentActivity() {
 
 
 
-
-    @Composable
-    fun PreviewMessageCard() {
-
-    }
-
-    @Composable
-    fun MessageCard(msg: AppDatabase.Post) {
-        var data by remember { mutableStateOf(userName) }
-
-
-        val imageBitmap by remember { mutableStateOf(bitmapImage) }
-        Row(modifier = Modifier.padding(all = 8.dp)) {
-//            AsyncImage(model = imageUriz, contentDescription = null, modifier = Modifier
-//                .size(40.dp)
-//                .clip(CircleShape)
-//                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape)
-//            )
-            DisplayImage(imageBitmap)
-
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // We keep track if the message is expanded or not in this
-            // variable
-            var isExpanded by remember { mutableStateOf(false) }
-            // surfaceColor will be updated gradually from one color to the other
-            val surfaceColor by animateColorAsState(
-                if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-            )
-
-            // We toggle the isExpanded variable when we click on this Column
-
-
-            Column(modifier = Modifier.clickable { isExpanded = !isExpanded }) {
-                Text(
-                    text = data,
-                    color = MaterialTheme.colorScheme.secondary,
-                    style = MaterialTheme.typography.titleSmall
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    shadowElevation = 1.dp,
-                    // surfaceColor color will be changing gradually from primary to surface
-                    color = surfaceColor,
-                    // animateContentSize will change the Surface size gradually
-
-                ) {
-                    Column {
-                        if(msg.image != null){
-                            var imageBitmap = byteArrayToBitmap(msg.image)
-                            if(imageBitmap != null){
-                                Log.d("MyTask","1")
-                                Image(
-                                    painter = BitmapPainter(imageBitmap),
-                                    contentDescription = null,
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = msg.time,
-                            modifier = Modifier.padding(all = 4.dp),
-                            // If the message is expanded, we display all its content
-                            // otherwise we only display the first line
-                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                }
-            }
-        }
-    }
 
     @Composable
     fun DisplayImage(bitmap: ImageBitmap?) {
