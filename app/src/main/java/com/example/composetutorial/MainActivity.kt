@@ -79,7 +79,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
-import com.example.composetutorial.ui.MainScreen
+import com.example.composetutorial.ui.CheckCameraPermissionScreen
 import java.io.InputStream
 
 import kotlinx.coroutines.delay
@@ -255,7 +255,7 @@ class MainActivity : ComponentActivity() {
                     })
                 }
                 composable("camera") {
-                    MainScreen(onNavigateBack = {
+                    CheckCameraPermissionScreen(onNavigateBack = {
                         CoroutineScope(Dispatchers.IO).launch {
                             saveImageToDataBase(it)
 

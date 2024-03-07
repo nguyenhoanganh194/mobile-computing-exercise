@@ -4,7 +4,6 @@ package com.example.composetutorial.ui
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
@@ -13,7 +12,7 @@ import com.example.composetutorial.ui.features.CameraScreen
 import com.example.composetutorial.ui.features.NoPermissionScreen
 
 @Composable
-fun MainScreen(onNavigateBack : (Bitmap)->Unit) {
+fun CheckCameraPermissionScreen(onNavigateBack : (Bitmap)->Unit) {
 
     val cameraPermissionState: PermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
